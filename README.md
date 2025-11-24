@@ -1,6 +1,6 @@
 # Smarty PHAR Builder
 
-> **_NOTE:_** This project was generated using AI as a proof of concept; feel free to use, modify, or share it however you like.
+> **_NOTE:_** This project was primarily generated using AI. It's provided as-is for community use and contributions are welcome.
 
 Scripts to package the Smarty templating engine (plus its dependencies) into a single PHAR and smoke-test it.
 
