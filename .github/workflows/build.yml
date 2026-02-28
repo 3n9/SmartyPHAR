@@ -1,0 +1,94 @@
+name: Build Smarty PHARs
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Every Monday at 06:00 UTC
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Smarty ${{ matrix.smarty_major }}.x PHAR
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        smarty_major: [3, 4, 5]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: phar
+          tools: composer:v2
+
+      - name: Build PHAR
+        env:
+          SMARTY_MAJOR: ${{ matrix.smarty_major }}
+          ALLOW_PHAR_OVERWRITE: '1'
+        run: ./build-smarty-phar.sh
+
+      - name: Read resolved Smarty version
+        id: version
+        run: |
+          PHAR=$(ls dist/Smarty-v*.phar | head -1)
+          VERSION=$(basename "$PHAR" .phar | sed 's/Smarty-v//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "phar=$PHAR" >> "$GITHUB_OUTPUT"
+          echo "tag=Smarty-v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists – skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG not found – will create."
+          fi
+
+      - name: Create release and upload PHAR
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          PHAR="${{ steps.version.outputs.phar }}"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Smarty v${{ steps.version.outputs.version }}" \
+            --notes "Automated build of Smarty ${{ steps.version.outputs.version }} packaged as a standalone PHAR.
+
+**Usage:**
+\`\`\`php
+require 'Smarty-v${{ steps.version.outputs.version }}.phar';
+\$smarty = new Smarty\\Smarty();
+\`\`\`
+
+Built from [smarty/smarty](https://github.com/smarty-php/smarty) via Composer." \
+            "$PHAR"
+
+      - name: Upload asset to existing release
+        if: steps.check.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          PHAR="${{ steps.version.outputs.phar }}"
+          # Upload asset only if not already attached (idempotent)
+          ASSET_NAME=$(basename "$PHAR")
+          EXISTING=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq ".assets[] | select(.name == \"$ASSET_NAME\") | .name" 2>/dev/null || true)
+          if [ -z "$EXISTING" ]; then
+            gh release upload "$TAG" "$PHAR" --repo "$GITHUB_REPOSITORY"
+          else
+            echo "Asset $ASSET_NAME already attached to $TAG – nothing to do."
+          fi
