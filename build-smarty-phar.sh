@@ -38,6 +38,11 @@ pushd "$PROJECT_DIR" >/dev/null
 	--require "smarty/smarty:^${SMARTY_MAJOR}.0" \
 	--no-interaction
 
+# Disable security-advisory blocking so legacy major versions (e.g. v3) can
+# still be resolved. The PHAR is a convenience packaging tool; consumers are
+# responsible for understanding the security posture of the version they choose.
+"$COMPOSER_BIN" config audit.block-insecure false
+
 "$COMPOSER_BIN" install --no-interaction --prefer-dist
 "$COMPOSER_BIN" dump-autoload --optimize
 
