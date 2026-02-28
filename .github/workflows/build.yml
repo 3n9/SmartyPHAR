@@ -50,9 +50,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.version.outputs.tag }}"
+          ASSET_NAME=$(basename "${{ steps.version.outputs.phar }}")
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG already exists – skipping."
+            # Release exists – check if the PHAR asset is actually attached
+            EXISTING=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --json assets --jq ".assets[] | select(.name == \"$ASSET_NAME\") | .name")
+            if [ -n "$EXISTING" ]; then
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+              echo "Release $TAG with asset $ASSET_NAME already exists – skipping."
+            else
+              echo "exists=partial" >> "$GITHUB_OUTPUT"
+              echo "Release $TAG exists but asset $ASSET_NAME is missing – will upload."
+            fi
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "Release $TAG not found – will create."
@@ -82,6 +91,15 @@ jobs:
             --title "Smarty v${VERSION}" \
             --notes-file /tmp/release-notes.md \
             "$PHAR"
+
+      - name: Upload missing asset to existing release
+        if: steps.check.outputs.exists == 'partial'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.version.outputs.tag }}" \
+            "${{ steps.version.outputs.phar }}" \
+            --repo "$GITHUB_REPOSITORY"
 
       - name: Skip existing release
         if: steps.check.outputs.exists == 'true'
