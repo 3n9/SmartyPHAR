@@ -38,7 +38,7 @@ jobs:
       - name: Read resolved Smarty version
         id: version
         run: |
-          PHAR=$(ls dist/Smarty-v*.phar | head -1)
+          PHAR=$(ls -t dist/Smarty-v${{ matrix.smarty_major }}.*.phar | head -1)
           VERSION=$(basename "$PHAR" .phar | sed 's/Smarty-v//')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "phar=$PHAR" >> "$GITHUB_OUTPUT"
