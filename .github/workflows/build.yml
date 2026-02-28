@@ -83,11 +83,6 @@ jobs:
             --notes-file /tmp/release-notes.md \
             "$PHAR"
 
-      - name: Upload asset to existing release
+      - name: Skip existing release
         if: steps.check.outputs.exists == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          PHAR="${{ steps.version.outputs.phar }}"
-          gh release upload "$TAG" "$PHAR" --repo "$GITHUB_REPOSITORY" --clobber
+        run: echo "Release ${{ steps.version.outputs.tag }} already exists – nothing to do."
