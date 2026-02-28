@@ -29,10 +29,12 @@ This PHAR approach is a convenience workaround for situations where Composer is 
 
 ### For Non-Technical Users (No Command Line Required)
 
-1. **Download** a pre-built PHAR from the [Releases](../../releases) page:
-   - `Smarty-v5.7.0.phar` - For PHP 8.1+ (recommended for new projects)
-   - `Smarty-v4.5.6.phar` - For PHP 7.2 to 8.x
-   - `Smarty-v3.1.46.phar` - For legacy PHP 5.6+ systems
+1. **Download** the latest pre-built PHAR from the **[Releases](../../releases/latest)** page — pick the file matching your PHP version:
+   - `Smarty-v5.x.x.phar` — PHP 8.1+ (recommended for new projects)
+   - `Smarty-v4.x.x.phar` — PHP 7.2 to 8.x
+   - `Smarty-v3.x.x.phar` — Legacy PHP 5.6+ systems
+
+   > PHARs are built automatically each week from the latest Smarty release for each major version.
 
 2. **Upload via FTP** to your web server (e.g., into your public_html folder)
 
@@ -42,8 +44,8 @@ This PHAR approach is a convenience workaround for situations where Composer is 
 
 ```php
 <?php
-// Include the PHAR file
-require 'Smarty-v5.7.0.phar';
+// Include the PHAR file (use the actual filename you downloaded)
+require 'Smarty-v5.x.x.phar';
 
 // Create Smarty instance
 $smarty = new Smarty\Smarty();
