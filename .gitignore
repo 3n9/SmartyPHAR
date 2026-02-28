@@ -1,4 +1,3 @@
 templates_c/
 build/
-*.phar
-!dist/*.phar
+dist/
